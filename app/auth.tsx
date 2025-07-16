@@ -1,13 +1,53 @@
+import { useAuth } from "@/libs/auth-content";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
 
-import { Button, Text, TextInput } from "react-native-paper";
+import { Button, Text, TextInput, useTheme } from "react-native-paper";
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>("");
+
+  const theme = useTheme();
+  const router = useRouter();
+
+  const { signIn, signUp } = useAuth();
 
   const handleSwitchMode = () => {
     setIsSignUp((prev) => !prev);
+  };
+
+  const handleAuth = async () => {
+    if (!email || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    setError(null);
+
+    if (isSignUp) {
+      const error = await signUp(email, password);
+      if (error) {
+        setError(error);
+        return;
+      }
+    } else {
+      const error = await signIn(email, password);
+      if (error) {
+        setError(error);
+        return;
+      }
+
+      router.replace("/");
+    }
   };
 
   return (
@@ -26,15 +66,22 @@ export default function Auth() {
           keyboardType="email-address"
           placeholder="example@gmail.com"
           mode="outlined"
+          onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
           label="Password"
           autoCapitalize="none"
-          keyboardType="email-address"
+          secureTextEntry
           mode="outlined"
+          onChangeText={setPassword}
         />
-        <Button style={styles.button} mode="contained">
+        {error && (
+          <Text style={{ color: theme.colors.error, marginBottom: 16 }}>
+            {error}
+          </Text>
+        )}
+        <Button style={styles.button} mode="contained" onPress={handleAuth}>
           {isSignUp ? "Sign Up" : "Sign In"}
         </Button>
         <Button

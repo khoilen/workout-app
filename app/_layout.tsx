@@ -1,31 +1,33 @@
-import { Stack, useRootNavigationState, useRouter } from "expo-router";
+import { AuthProvider, useAuth } from "@/libs/auth-content";
+import { Stack, useRouter, useSegments } from "expo-router";
 import React, { useEffect } from "react";
 
 function RouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const rootNavigationState = useRootNavigationState();
-  const navigatorReady = rootNavigationState?.key != null;
-
-  const isAuth = false;
+  const { user, isLoadingUser } = useAuth();
+  const segments = useSegments();
 
   useEffect(() => {
-    if (!navigatorReady) return;
-
-    if (!isAuth) {
-      console.log("Redirecting to /auth...");
+    const inAuthGroup = segments[0] === "auth";
+    console.log(user);
+    if (!user && !inAuthGroup && !isLoadingUser) {
       router.replace("/auth");
+    } else if (user && inAuthGroup && !isLoadingUser) {
+      router.replace("/");
     }
-  }, [navigatorReady, isAuth, router]);
-
-  if (!navigatorReady) return null;
+  }, [user, segments]);
 
   return <>{children}</>;
 }
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <AuthProvider>
+      <RouteGuard>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+      </RouteGuard>
+    </AuthProvider>
   );
 }
