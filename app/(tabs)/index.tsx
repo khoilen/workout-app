@@ -1,18 +1,59 @@
-import { DATABASE_ID, databases, HABITS_COLLECTION_ID } from "@/libs/appwrite";
+import {
+  client,
+  DATABASE_ID,
+  databases,
+  HABITS_COLLECTION_ID,
+  RealtimeResponse,
+} from "@/libs/appwrite";
 import { useAuth } from "@/libs/auth-content";
 import { Habit } from "@/types/database.type";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Query } from "react-native-appwrite";
+import { Swipeable } from "react-native-gesture-handler";
 import { Button, Surface, Text } from "react-native-paper";
 
 export default function Index() {
   const { signOut, user } = useAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
 
+  const swipeableRefs = useRef<{ [key: string]: Swipeable | null }>({});
+
   useEffect(() => {
-    fetchHabits();
+    if (user) {
+      const channel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
+      const subscription = client.subscribe(
+        channel,
+        (response: RealtimeResponse) => {
+          if (
+            response.events.includes(
+              "databases.*.collections.*.documents.*.create"
+            )
+          ) {
+            fetchHabits();
+          } else if (
+            response.events.includes(
+              "databases.*.collections.*.documents.*.update"
+            )
+          ) {
+            fetchHabits();
+          } else if (
+            response.events.includes(
+              "databases.*.collections.*.documents.*.delete"
+            )
+          ) {
+            fetchHabits();
+          }
+        }
+      );
+
+      fetchHabits();
+
+      return () => {
+        subscription();
+      };
+    }
   }, [user]);
 
   const fetchHabits = async () => {
@@ -39,40 +80,53 @@ export default function Index() {
           Signout
         </Button>
       </View>
-      {habits.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No habits found</Text>
-        </View>
-      ) : (
-        <View>
-          {habits.map((habit) => (
-            <Surface style={styles.card} key={habit.$id} elevation={0}>
-              <View key={habit.$id} style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{habit.title}</Text>
-                <Text style={styles.cardDescription}>{habit.description}</Text>
-                <View style={styles.cardFooter}>
-                  <View style={styles.streakBadge}>
-                    <MaterialCommunityIcons
-                      name="fire"
-                      size={18}
-                      color={"#ff9800"}
-                    />
-                    <Text style={styles.streakText}>
-                      {habit.streak_count} day streak
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {habits.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No habits found</Text>
+          </View>
+        ) : (
+          <View>
+            {habits.map((habit, key) => (
+              <Swipeable
+                ref={(ref) => {
+                  swipeableRefs.current[habit.$id] = ref;
+                }}
+                key={key}
+                overshootLeft={false}
+                overshootRight={false}
+              >
+                <Surface style={styles.card} key={habit.$id} elevation={0}>
+                  <View key={habit.$id} style={styles.cardContent}>
+                    <Text style={styles.cardTitle}>{habit.title}</Text>
+                    <Text style={styles.cardDescription}>
+                      {habit.description}
                     </Text>
+                    <View style={styles.cardFooter}>
+                      <View style={styles.streakBadge}>
+                        <MaterialCommunityIcons
+                          name="fire"
+                          size={18}
+                          color={"#ff9800"}
+                        />
+                        <Text style={styles.streakText}>
+                          {habit.streak_count} day streak
+                        </Text>
+                      </View>
+                      <View style={styles.frequencyBadge}>
+                        <Text style={styles.frequencyText}>
+                          {habit.frequency.charAt(0).toUpperCase() +
+                            habit.frequency.slice(1)}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.frequencyBadge}>
-                    <Text style={styles.frequencyText}>
-                      {habit.frequency.charAt(0).toUpperCase() +
-                        habit.frequency.slice(1)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </Surface>
-          ))}
-        </View>
-      )}
+                </Surface>
+              </Swipeable>
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
