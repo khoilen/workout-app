@@ -24,9 +24,9 @@ export default function Index() {
 
   useEffect(() => {
     if (user) {
-      const channel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
-      const subscription = client.subscribe(
-        channel,
+      const habitsChannel = `databases.${DATABASE_ID}.collections.${HABITS_COLLECTION_ID}.documents`;
+      const habitsSubscription = client.subscribe(
+        habitsChannel,
         (response: RealtimeResponse) => {
           if (
             response.events.includes(
@@ -50,11 +50,26 @@ export default function Index() {
         }
       );
 
+      const completionsChannel = `databases.${DATABASE_ID}.collections.${COMPLETIONS_COLLECTION_ID}.documents`;
+      const completionsSubscription = client.subscribe(
+        completionsChannel,
+        (response: RealtimeResponse) => {
+          if (
+            response.events.includes(
+              "databases.*.collections.*.documents.*.create"
+            )
+          ) {
+            fetchTodayCompletions();
+          }
+        }
+      );
+
       fetchHabits();
       fetchTodayCompletions();
 
       return () => {
-        subscription();
+        habitsSubscription();
+        completionsSubscription();
       };
     }
   }, [user]);
@@ -151,17 +166,24 @@ export default function Index() {
     );
   };
 
-  const renderRightActions = () => {
+  const renderRightActions = (habitId: string) => {
     return (
       <View style={styles.swipeActionRight}>
-        <MaterialCommunityIcons
-          name="check-circle-outline"
-          size={32}
-          color="#ffff"
-        />
+        {isHabitCompleted(habitId) ? (
+          <Text style={{ color: "#ffff" }}>Completed!</Text>
+        ) : (
+          <MaterialCommunityIcons
+            name="check-circle-outline"
+            size={32}
+            color="#ffff"
+          />
+        )}
       </View>
     );
   };
+
+  const isHabitCompleted = (habitId: string) =>
+    completedHabits.includes(habitId);
 
   return (
     <View style={styles.container}>
@@ -189,7 +211,7 @@ export default function Index() {
                 overshootLeft={false}
                 overshootRight={false}
                 renderLeftActions={renderLeftActions}
-                renderRightActions={renderRightActions}
+                renderRightActions={() => renderRightActions(habit.$id)}
                 onSwipeableOpen={(direction) => {
                   if (direction === "left") {
                     handleDeleteHabit(habit.$id);
@@ -200,7 +222,14 @@ export default function Index() {
                   swipeableRefs.current[habit.$id]?.close();
                 }}
               >
-                <Surface style={styles.card} key={habit.$id} elevation={0}>
+                <Surface
+                  style={[
+                    styles.card,
+                    isHabitCompleted(habit.$id) && styles.cardCompleted,
+                  ]}
+                  key={habit.$id}
+                  elevation={0}
+                >
                   <View key={habit.$id} style={styles.cardContent}>
                     <Text style={styles.cardTitle}>{habit.title}</Text>
                     <Text style={styles.cardDescription}>
@@ -260,6 +289,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     borderRadius: 8,
+  },
+  cardCompleted: {
+    opacity: 0.5,
   },
   cardContent: {
     padding: 3,
