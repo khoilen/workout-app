@@ -10,7 +10,7 @@ import { useAuth } from "@/libs/auth-content";
 import { Habit, HabitCompletion } from "@/types/database.type";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { ID, Query } from "react-native-appwrite";
 import { Swipeable } from "react-native-gesture-handler";
 import { Button, Surface, Text } from "react-native-paper";
@@ -149,6 +149,7 @@ export default function Index() {
           last_completed: currentDate,
         }
       );
+      Alert.alert("✅ Success", "Habit marked as completed!");
     } catch (error) {
       console.error("Error completing habit:", error);
     }
@@ -185,6 +186,30 @@ export default function Index() {
   const isHabitCompleted = (habitId: string) =>
     completedHabits.includes(habitId);
 
+  const confirmDeleteHabit = (habitId: string) => {
+    Alert.alert(
+      "Delete Habit",
+      "Are you sure you want to delete this habit?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => {
+            swipeableRefs.current[habitId]?.close();
+          },
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            handleDeleteHabit(habitId);
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -214,7 +239,7 @@ export default function Index() {
                 renderRightActions={() => renderRightActions(habit.$id)}
                 onSwipeableOpen={(direction) => {
                   if (direction === "left") {
-                    handleDeleteHabit(habit.$id);
+                    confirmDeleteHabit(habit.$id);
                   } else if (direction === "right") {
                     handleCompleteHabit(habit.$id);
                   }
@@ -282,7 +307,7 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 18,
     padding: 18,
-    backgroundColor: "#f7f7fa",
+    backgroundColor: "#fff",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,

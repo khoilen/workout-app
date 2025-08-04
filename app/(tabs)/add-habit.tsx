@@ -44,7 +44,6 @@ export default function AddHabit() {
           created_at: new Date().toISOString(),
         }
       );
-
       router.back();
     } catch (error) {
       if (error instanceof Error) {
