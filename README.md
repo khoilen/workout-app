@@ -40,3 +40,33 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 ## Today Habits
 
 ![alt text](today-habit.png)
+
+## Features
+
+- Login and Signup
+- Create Habit
+- View Top Habits
+- View Today Habits
+- Complete Habits
+- Delete Habits
+- Ranking of Habits
+
+## Ecosystem
+
+- [Expo](https://expo.dev) for building and deploying the app.
+- [React Navigation](https://reactnavigation.org) for navigation.
+- [Appwrite](https://docs.expo.dev/versions/latest/sdk/appwrite/) for backend services.
+- [React Native Paper](https://callstack.github.io/react-native-paper/) for UI components.
+
+## Directory Structure
+
+```
+.
+├── assets/               # Images and other static assets
+├── components/           # Reusable components
+├── constants/            # Constants used throughout the app
+├── api/                  # API calls and services
+├── libs/                 # Utility functions and libraries
+├── utils/                # Utility functions
+├── types/                # Type definitions for different app components
+```
