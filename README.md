@@ -47,8 +47,8 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 - Create Habit
 - View Top Habits
 - View Today Habits
-- Complete Habits
-- Delete Habits
+- Complete Habits: swipe right to mark a habit as completed.
+- Delete Habits: swipe left to delete a habit.
 - Ranking of Habits
 
 ## Ecosystem
