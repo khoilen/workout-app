@@ -1,10 +1,16 @@
+import {
+  completeHabit,
+  deleteHabit,
+  loadHabitByUserId,
+  loadTodayCompletions,
+  updateHabit,
+} from "@/api/habit";
 import { EmptyHabit } from "@/components/empty-habit";
 import { HabitItem } from "@/components/habit-item";
 import {
   client,
   COMPLETIONS_COLLECTION_ID,
   DATABASE_ID,
-  databases,
   HABITS_COLLECTION_ID,
   RealtimeResponse,
 } from "@/libs/appwrite";
@@ -12,7 +18,6 @@ import { useAuth } from "@/libs/auth-content";
 import { Habit, HabitCompletion } from "@/types/database.type";
 import { useEffect, useRef, useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
-import { ID, Query } from "react-native-appwrite";
 import { Swipeable } from "react-native-gesture-handler";
 import { Button, Text } from "react-native-paper";
 
@@ -77,11 +82,7 @@ export default function Index() {
 
   const fetchHabits = async () => {
     try {
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        HABITS_COLLECTION_ID,
-        [Query.equal("user_id", user?.$id ?? "")]
-      );
+      const response = await loadHabitByUserId(user?.$id ?? "");
 
       setHabits(response.documents as Habit[]);
     } catch (error) {
@@ -91,19 +92,10 @@ export default function Index() {
 
   const fetchTodayCompletions = async () => {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COMPLETIONS_COLLECTION_ID,
-        [
-          Query.equal("user_id", user?.$id ?? ""),
-          Query.greaterThanEqual("completed_at", today.toISOString()),
-        ]
+      const response = await loadTodayCompletions(user?.$id ?? "");
+      setCompletedHabits(
+        (response.documents as HabitCompletion[]).map((c) => c.habit_id)
       );
-      const completions = response.documents as HabitCompletion[];
-      setCompletedHabits(completions.map((c) => c.habit_id));
     } catch (error) {
       console.error("Error fetching habits:", error);
     }
@@ -111,11 +103,7 @@ export default function Index() {
 
   const handleDeleteHabit = async (habitId: string) => {
     try {
-      await databases.deleteDocument(
-        DATABASE_ID,
-        HABITS_COLLECTION_ID,
-        habitId
-      );
+      await deleteHabit(habitId);
     } catch (error) {
       console.error("Error deleting habit:", error);
     }
@@ -127,29 +115,14 @@ export default function Index() {
     try {
       const currentDate = new Date().toISOString();
 
-      await databases.createDocument(
-        DATABASE_ID,
-        COMPLETIONS_COLLECTION_ID,
-        ID.unique(),
-        {
-          user_id: user?.$id ?? "",
-          habit_id: habitId,
-          completed_at: currentDate,
-        }
-      );
+      await completeHabit(user?.$id ?? "", habitId, currentDate);
 
       const habit = habits.find((h) => h.$id === habitId);
+
       if (!habit) return;
 
-      await databases.updateDocument(
-        DATABASE_ID,
-        HABITS_COLLECTION_ID,
-        habitId,
-        {
-          streak_count: habit.streak_count + 1,
-          last_completed: currentDate,
-        }
-      );
+      await updateHabit(habitId, habit.streak_count + 1, currentDate);
+
       Alert.alert("✅ Success", "Habit marked as completed!");
     } catch (error) {
       console.error("Error completing habit:", error);
